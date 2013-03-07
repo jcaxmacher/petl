@@ -8,7 +8,6 @@ from itertools import islice, groupby, chain, count
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 import re
-from string import maketrans
 import random
 import time
 import datetime
@@ -2008,7 +2007,7 @@ def stringpatterncounter(table, field):
 
     """
     
-    trans = maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 
+    trans = str.maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 
                       'AAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaaaaaaaaaa9999999999')
     counter = Counter()
     for v in itervalues(table, field):
