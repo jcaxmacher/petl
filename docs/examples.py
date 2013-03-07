@@ -64,7 +64,7 @@ look(table3)
 table4 = cut(table1, 'bar', 0)
 look(table4)
 # select a range of fields
-table5 = cut(table1, *range(0, 2))
+table5 = cut(table1, *list(range(0, 2)))
 look(table5)    
 
 
@@ -94,7 +94,7 @@ table2 = [['bar', 'baz'],
 table4 = [['foo', 'bar', 'baz'],
           ['A', 1, 2],
           ['B', '2', '3.4'],
-          [u'B', u'3', u'7.8', True],
+          ['B', '3', '7.8', True],
           ['D', 'xyz', 9.0],
           ['E', None]]
 table5 = [['bar', 'foo'],
@@ -151,7 +151,7 @@ look(table5)
 table7 = convert(table1, 'foo', {'A': 'Z', 'B': 'Y'})
 look(table7)
 # the same conversion can be applied to multiple fields
-table8 = convert(table1, ('foo', 'bar', 'baz'), unicode)
+table8 = convert(table1, ('foo', 'bar', 'baz'), str)
 look(table8)
 # multiple conversions can be specified at the same time
 table9 = convert(table1, {'foo': 'lower', 'bar': float, 'baz': lambda v: v*2})
@@ -583,7 +583,7 @@ table1 = [['foo', 'bar', 'baz'],
 from petl import facet, look
 look(table1)
 foo = facet(table1, 'foo')
-foo.keys()
+list(foo.keys())
 look(foo['a'])
 look(foo['c'])
 
@@ -1108,7 +1108,7 @@ table1 = [['foo', 'bar'],
 from petl import rangefacet, look
 look(table1)
 rf = rangefacet(table1, 'bar', 2)
-rf.keys()
+list(rf.keys())
 look(rf[(1, 3)])
 look(rf[(7, 9)])
 
@@ -1323,7 +1323,7 @@ look(table)
 tojson(table, 'example.json')
 # check what it did
 with open('example.json') as f:
-    print f.read()
+    print(f.read())
 
 
 # tojsonarrays
@@ -1338,7 +1338,7 @@ look(table)
 tojsonarrays(table, 'example.json')
 # check what it did
 with open('example.json') as f:
-    print f.read()
+    print(f.read())
 
 
 # mergesort
@@ -1466,7 +1466,7 @@ table1 = (('foo', 'bar', 'baz'),
           ('A', 1, 2),
           ('B', '2', '3.4'),
           ('D', 'xyz', 9.0),
-          ('B', u'3', u'7.8'),
+          ('B', '3', '7.8'),
           ('B', '2', 42),
           ('E', None, None),
           ('D', 4, 12.3),
@@ -1501,11 +1501,11 @@ from petl import rowgroupby, look
 look(table)
 # group entire rows
 for key, group in rowgroupby(table, 'foo'):
-    print key, list(group)
+    print(key, list(group))
 
 # group specific values
 for key, group in rowgroupby(table, 'foo', 'bar'):
-    print key, list(group)
+    print(key, list(group))
 
 
 # fold

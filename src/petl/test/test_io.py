@@ -5,7 +5,7 @@ Tests for the petl.io module.
 
 from tempfile import NamedTemporaryFile
 import csv
-import cPickle as pickle
+import pickle as pickle
 import sqlite3
 from nose.tools import eq_
 import json
@@ -233,7 +233,7 @@ def test_fromsqlite3():
               ('a', 1),
               ('b', 2),
               ('c', 2.0))
-    print list(actual)
+    print(list(actual))
     ieq(expect, actual, cast=tuple)
     ieq(expect, actual, cast=tuple) # verify can iterate twice
 
@@ -259,7 +259,7 @@ def test_fromsqlite3_connection():
               ('a', 1),
               ('b', 2),
               ('c', 2.0))
-    print list(actual)
+    print(list(actual))
     ieq(expect, actual, cast=tuple)
     ieq(expect, actual, cast=tuple) # verify can iterate twice
 
@@ -382,10 +382,10 @@ def test_fromdb():
     # test iterators are isolated
     i1 = iter(actual)
     i2 = iter(actual)
-    eq_(('foo', 'bar'), i1.next())
-    eq_(('a', 1), i1.next())
-    eq_(('foo', 'bar'), i2.next())
-    eq_(('b', 2), i1.next())
+    eq_(('foo', 'bar'), next(i1))
+    eq_(('a', 1), next(i1))
+    eq_(('foo', 'bar'), next(i2))
+    eq_(('b', 2), next(i1))
 
 
 def test_fromdb_mkcursor():
@@ -415,10 +415,10 @@ def test_fromdb_mkcursor():
     # test iterators are isolated
     i1 = iter(actual)
     i2 = iter(actual)
-    eq_(('foo', 'bar'), i1.next())
-    eq_(('a', 1), i1.next())
-    eq_(('foo', 'bar'), i2.next())
-    eq_(('b', 2), i1.next())
+    eq_(('foo', 'bar'), next(i1))
+    eq_(('a', 1), next(i1))
+    eq_(('foo', 'bar'), next(i2))
+    eq_(('b', 2), next(i1))
 
 
 def test_fromdb_withargs():
@@ -515,9 +515,9 @@ def test_fromxml_2():
     f.write(data)
     f.close()
     
-    print open(f.name).read()
+    print(open(f.name).read())
     actual = fromxml(f.name, 'tr', 'td', 'v')
-    print actual
+    print(actual)
     expect = (('foo', 'bar'),
               ('a', '1'),
               ('b', '2'),

@@ -9,6 +9,7 @@ from itertools import islice
 import sys
 from .util import valueset, RowContainer
 import petl.fluent
+import collections
 
 
 petl = sys.modules['petl']
@@ -33,19 +34,19 @@ class InteractiveWrapper(petl.fluent.FluentWrapper):
             tag = self._inner.cachetag()
         except:
             # cannot cache for some reason, just pass through
-            if debug: print repr(self._inner) + ' :: uncacheable'
+            if debug: print(repr(self._inner) + ' :: uncacheable')
             return iter(self._inner)
         else:
             if self._tag is None or self._tag != tag:
                 # _tag is not fresh
-                if debug: print repr(self._inner) + ' :: stale, clearing cache'
+                if debug: print(repr(self._inner) + ' :: stale, clearing cache')
                 object.__setattr__(self, '_cache', []) # reset cache
                 object.__setattr__(self, '_tag', tag)
                 object.__setattr__(self, '_cachecomplete', False)
             return self._iterwithcache()
             
     def _iterwithcache(self):
-        if debug: print repr(self._inner) + ' :: serving from cache, cache size ' + str(len(self._cache))
+        if debug: print(repr(self._inner) + ' :: serving from cache, cache size ' + str(len(self._cache)))
 
         # serve whatever is in the cache first
         for row in self._cache:
@@ -53,7 +54,7 @@ class InteractiveWrapper(petl.fluent.FluentWrapper):
             
         if not self._cachecomplete:
             # serve the remainder from the inner iterator
-            if debug: print repr(self._inner) + ' :: cache exhausted, serving from inner iterator'    
+            if debug: print(repr(self._inner) + ' :: cache exhausted, serving from inner iterator')    
             it = iter(self._inner)
             for row in islice(it, len(self._cache), None):
                 # maybe there's more room in the cache?
@@ -84,8 +85,8 @@ def wrap(f):
 
         
 # import and wrap all functions from root petl module
-for n, c in petl.__dict__.items():
-    if callable(c):
+for n, c in list(petl.__dict__.items()):
+    if isinstance(c, collections.Callable):
         setattr(thismodule, n, wrap(c))
     else:
         setattr(thismodule, n, c)
@@ -93,8 +94,8 @@ for n, c in petl.__dict__.items():
         
 # add module functions as methods on the wrapper class
 # TODO add only those methods that expect to have row container as first argument
-for n, c in thismodule.__dict__.items():
-    if callable(c):
+for n, c in list(thismodule.__dict__.items()):
+    if isinstance(c, collections.Callable):
         setattr(InteractiveWrapper, n, c) 
         
         

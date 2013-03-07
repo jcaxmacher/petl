@@ -21,7 +21,7 @@ class IterContainer(object):
     def __getitem__(self, item):
         if isinstance(item, int):
             try:
-                return islice(self, item, item+1).next()
+                return next(islice(self, item, item+1))
             except StopIteration:
                 raise IndexError('index out of range')
         elif isinstance(item, slice):

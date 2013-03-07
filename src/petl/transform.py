@@ -3,10 +3,10 @@ Functions for transforming tables.
 
 """
 
-from itertools import islice, groupby, product, chain, izip_longest, izip
+from itertools import islice, groupby, product, chain, zip_longest
 from collections import deque, defaultdict
 from operator import itemgetter
-import cPickle as pickle
+import pickle as pickle
 from tempfile import NamedTemporaryFile
 import operator
 import re
@@ -22,6 +22,8 @@ from .io import Uncacheable
 from .util import RowContainer, SortableItem, sortable_itemgetter
 from petl.util import FieldSelectionError, rowgroupbybin, rowitemgetter
 import os
+import collections
+from functools import reduce
 
 
 logger = logging.getLogger(__name__)
@@ -124,7 +126,7 @@ class RenameView(RowContainer):
 def iterrename(source, spec):
     it = iter(source)
     spec = spec.copy() # make sure nobody can change this midstream
-    sourceflds = it.next()
+    sourceflds = next(it)
     newflds = [spec[f] if f in spec else f for f in sourceflds]
     yield tuple(newflds)
     for row in it:
@@ -254,7 +256,7 @@ def itercut(source, spec, missing=None):
     spec = tuple(spec) # make sure no-one can change midstream
     
     # convert field selection into field indices
-    flds = it.next()
+    flds = next(it)
     indices = asindices(flds, spec)
 
     # define a function to transform each row in the source data 
@@ -340,7 +342,7 @@ def itercutout(source, spec, missing=None):
     spec = tuple(spec) # make sure no-one can change midstream
     
     # convert field selection into field indices
-    flds = it.next()
+    flds = next(it)
     indicesout = asindices(flds, spec)
     indices = [i for i in range(len(flds)) if i not in indicesout]
     
@@ -519,7 +521,7 @@ class CatView(RowContainer):
 
 def itercat(sources, missing, header):
     its = [iter(t) for t in sources]
-    source_flds_lists = [it.next() for it in its]
+    source_flds_lists = [next(it) for it in its]
 
     if header is None:
         # determine output fields by gathering all fields found in the sources
@@ -816,7 +818,7 @@ class FieldConvertView(RowContainer):
         try:
             # need to make converters hashable
             convhashable = list()
-            for f, c in self.converters.items():
+            for f, c in list(self.converters.items()):
                 if isinstance(c, list):
                     convhashable.append((f, tuple(c)))
                 elif isinstance(c, dict):
@@ -835,27 +837,27 @@ def iterfieldconvert(source, converters, failonerror, errorvalue):
 
     # grab the fields in the source table
     it = iter(source)
-    flds = it.next()
+    flds = next(it)
     yield tuple(flds) # these are not modified
 
     norm_converters = dict()
     # normalise converters
-    for k, c in converters.items():
+    for k, c in list(converters.items()):
         # turn field names into row indices
-        if isinstance(k, basestring):
+        if isinstance(k, str):
             try:
                 k = flds.index(k)
             except ValueError: # not in list
                 raise FieldSelectionError(k)
         assert isinstance(k, int), 'expected integer, found %r' % k
         # is converter a function?
-        if callable(c):
+        if isinstance(c, collections.Callable):
             norm_converters[k] = c
         # is converter a method name?
-        elif isinstance(c, basestring):
+        elif isinstance(c, str):
             norm_converters[k] = methodcaller(c)
         # is converter a method name with arguments?
-        elif isinstance(c, (tuple, list)) and isinstance(c[0], basestring):
+        elif isinstance(c, (tuple, list)) and isinstance(c[0], str):
             methnm = c[0]
             methargs = c[1:]
             norm_converters[k] = methodcaller(methnm, *methargs)
@@ -1019,7 +1021,7 @@ class AddFieldView(RowContainer):
 
 def iteraddfield(source, field, value, index):
     it = iter(source)
-    flds = it.next()
+    flds = next(it)
     
     # determine index of new field
     if index is None:
@@ -1031,7 +1033,7 @@ def iteraddfield(source, field, value, index):
     yield tuple(outflds)
 
     # hybridise rows if using calculated value
-    if callable(value):
+    if isinstance(value, collections.Callable):
         for row in hybridrows(flds, it):
             outrow = list(row)
             v = value(row)
@@ -1129,7 +1131,7 @@ class RowSliceView(RowContainer):
 
 def iterrowslice(source, sliceargs):    
     it = iter(source)
-    yield tuple(it.next()) # fields
+    yield tuple(next(it)) # fields
     for row in islice(it, *sliceargs):
         yield tuple(row)
 
@@ -1250,7 +1252,7 @@ class TailView(RowContainer):
 
 def itertail(source, n):
     it = iter(source)
-    yield tuple(it.next()) # fields
+    yield tuple(next(it)) # fields
     cache = deque()
     for row in it:
         cache.append(row)
@@ -1436,14 +1438,14 @@ class SortView(RowContainer):
         self._clearcache()
         it = iter(source)
 
-        flds = it.next()
+        flds = next(it)
         yield tuple(flds)
         
         if key is not None:
             # convert field selection into field indices
             indices = asindices(flds, key)
         else:
-            indices = range(len(flds))
+            indices = list(range(len(flds)))
         # now use field indices to construct a _getkey function
         # N.B., this will probably raise an exception on short rows
         getkey = sortable_itemgetter(*indices)
@@ -1631,10 +1633,10 @@ def itermelt(source, key, variables, variablefield, valuefield):
     it = iter(source)
     
     # normalise some stuff
-    flds = it.next()
-    if isinstance(key, basestring):
+    flds = next(it)
+    if isinstance(key, str):
         key = (key,) # normalise to a tuple
-    if isinstance(variables, basestring):
+    if isinstance(variables, str):
         # shouldn't expect this, but ... ?
         variables = (variables,) # normalise to a tuple
     if not key:
@@ -1861,14 +1863,14 @@ def iterrecast(source, key, variablefield, valuefield,
     
     
     it = iter(source)
-    fields = it.next()
+    fields = next(it)
     
     # normalise some stuff
     keyfields = key
     variablefields = variablefield # N.B., could be more than one
-    if isinstance(keyfields, basestring):
+    if isinstance(keyfields, str):
         keyfields = (keyfields,)
-    if isinstance(variablefields, basestring):
+    if isinstance(variablefields, str):
         variablefields = (variablefields,)
     if not keyfields:
         # assume keyfields is fields not in variables
@@ -2033,12 +2035,12 @@ def iterduplicates(source, key):
     # first need to sort the data
     it = iter(source)
 
-    flds = it.next()
+    flds = next(it)
     yield tuple(flds)
 
     # convert field selection into field indices
     if key is None:
-        indices = range(len(flds))
+        indices = list(range(len(flds)))
     else:
         indices = asindices(flds, key)
         
@@ -2145,12 +2147,12 @@ def iterunique(source, key):
     # first need to sort the data
     it = iter(source)
 
-    flds = it.next()
+    flds = next(it)
     yield tuple(flds)
 
     # convert field selection into field indices
     if key is None:
-        indices = range(len(flds))
+        indices = list(range(len(flds)))
     else:
         indices = asindices(flds, key)
         
@@ -2159,7 +2161,7 @@ def iterunique(source, key):
     # the field selection
     getkey = itemgetter(*indices)
     
-    prev = it.next()
+    prev = next(it)
     prev_key = getkey(prev)
     prev_comp_ne = True
     
@@ -2268,9 +2270,9 @@ class ConflictsView(RowContainer):
 def iterconflicts(source, key, missing, exclude, include):
 
     # normalise arguments
-    if isinstance(exclude, basestring):
+    if isinstance(exclude, str):
         exclude = (exclude,)
-    if isinstance(include, basestring):
+    if isinstance(include, str):
         include = (include,)
 
     # exclude overrides include
@@ -2278,7 +2280,7 @@ def iterconflicts(source, key, missing, exclude, include):
         include = None
         
     it = iter(source)
-    flds = it.next()
+    flds = next(it)
     yield tuple(flds)
 
     # convert field selection into field indices
@@ -2405,18 +2407,18 @@ def itercomplement(ta, tb):
     # coerce rows to tuples to ensure hashable and comparable
     ita = (tuple(row) for row in iter(ta)) 
     itb = (tuple(row) for row in iter(tb))
-    aflds = tuple(str(f) for f in ita.next())
-    itb.next() # ignore b fields
+    aflds = tuple(str(f) for f in next(ita))
+    next(itb) # ignore b fields
     yield aflds
 
     try:
-        a = ita.next()
+        a = next(ita)
     except StopIteration:
         debug('a is empty, nothing to yield')
         pass
     else:
         try:
-            b = itb.next()
+            b = next(itb)
         except StopIteration:
             debug('b is empty, just iterate through a')
             yield a
@@ -2430,23 +2432,23 @@ def itercomplement(ta, tb):
                     yield a
                     debug('advance a')
                     try:
-                        a = ita.next()
+                        a = next(ita)
                     except StopIteration:
                         break
                 elif a == b:
                     debug('advance both')
                     try:
-                        a = ita.next()
+                        a = next(ita)
                     except StopIteration:
                         break
                     try:
-                        b = itb.next()
+                        b = next(itb)
                     except StopIteration:
                         b = None
                 else:
                     debug('advance b')
                     try:
-                        b = itb.next()
+                        b = next(itb)
                     except StopIteration:
                         b = None
         
@@ -2746,7 +2748,7 @@ def itercapture(source, field, pattern, newfields, include_original, flags):
     it = iter(source)
     prog = re.compile(pattern, flags)
     
-    flds = it.next()
+    flds = next(it)
     if field in flds:
         field_index = flds.index(field)
     elif isinstance(field, int) and field < len(flds):
@@ -2851,7 +2853,7 @@ def itersplit(source, field, pattern, newfields, include_original, maxsplit,
     it = iter(source)
     prog = re.compile(pattern, flags)
 
-    flds = it.next()
+    flds = next(it)
     if field in flds:
         field_index = flds.index(field)
     elif isinstance(field, int) and field < len(flds):
@@ -2951,15 +2953,15 @@ def select(table, *args, **kwargs):
         raise Exception('missing positional argument')
     elif len(args) == 1:
         where = args[0]
-        if isinstance(where, basestring):
+        if isinstance(where, str):
             where = expr(where)
         else:
-            assert callable(where), 'second argument must be string or callable'
+            assert isinstance(where, collections.Callable), 'second argument must be string or callable'
         return RowSelectView(table, where, missing=missing, complement=complement)
     else:
         field = args[0]
         where = args[1]
-        assert callable(where), 'third argument must be callable'
+        assert isinstance(where, collections.Callable), 'third argument must be callable'
         return FieldSelectView(table, field, where, complement=complement)
         
 
@@ -3013,7 +3015,7 @@ class RowSelectView(RowContainer):
 
 def iterrowselect(source, where, missing, complement):
     it = iter(source)
-    flds = it.next()
+    flds = next(it)
     yield tuple(flds)
     for row in hybridrows(flds, it, missing): # convert to hybrid row/record
         if where(row) != complement: # XOR
@@ -3069,7 +3071,7 @@ class FieldSelectView(RowContainer):
     
 def iterfieldselect(source, field, where, complement):
     it = iter(source)
-    flds = it.next()
+    flds = next(it)
     yield tuple(flds)
     indices = asindices(flds, field)
     getv = itemgetter(*indices)
@@ -3179,7 +3181,7 @@ class FieldMapView(RowContainer):
         try:
             # need to make converters hashable
             maphashable = list()
-            for outfld, m in self.mappings.items():
+            for outfld, m in list(self.mappings.items()):
                 if isinstance(m, (tuple, list)) and len(m) == 2:
                     srcfld = m[0]
                     fm = m[1]
@@ -3199,24 +3201,24 @@ class FieldMapView(RowContainer):
     
 def iterfieldmap(source, mappings, failonerror, errorvalue):
     it = iter(source)
-    flds = it.next()
-    outflds = mappings.keys()
+    flds = next(it)
+    outflds = list(mappings.keys())
     yield tuple(outflds)
     
     mapfuns = dict()
-    for outfld, m in mappings.items():
+    for outfld, m in list(mappings.items()):
         if m in flds:
             mapfuns[outfld] = itemgetter(m)
         elif isinstance(m, int) and m < len(flds):
             mapfuns[outfld] = itemgetter(m)
-        elif isinstance(m, basestring):
+        elif isinstance(m, str):
             mapfuns[outfld] = expr(m)
-        elif callable(m):
+        elif isinstance(m, collections.Callable):
             mapfuns[outfld] = m
         elif isinstance(m, (tuple, list)) and len(m) == 2:
             srcfld = m[0]
             fm = m[1]
-            if callable(fm):
+            if isinstance(fm, collections.Callable):
                 mapfuns[outfld] = composefun(fm, srcfld)
             elif isinstance(fm, dict):
                 mapfuns[outfld] = composedict(fm, srcfld)
@@ -3788,7 +3790,7 @@ def itermergeduplicates(table, key, missing):
     fields, it = iterpeek(it)
     
     # determine output fields
-    if isinstance(key, basestring):
+    if isinstance(key, str):
         outflds = [key]
         keyflds = set([key])
     else:
@@ -3957,7 +3959,7 @@ def aggregate(table, key, aggregation=None, value=None, presorted=False,
     
     """
 
-    if callable(aggregation):
+    if isinstance(aggregation, collections.Callable):
         return SimpleAggregateView(table, key, aggregation=aggregation, value=value, 
                                    presorted=presorted, buffersize=buffersize)
     elif aggregation is None or isinstance(aggregation, (list, tuple, dict)):
@@ -4030,21 +4032,21 @@ class MultiAggregateView(RowContainer):
 
     
 def itermultiaggregate(source, key, aggregation):
-    aggregation = OrderedDict(aggregation.items()) # take a copy
+    aggregation = OrderedDict(list(aggregation.items())) # take a copy
     it = iter(source)
-    srcflds = it.next()
+    srcflds = next(it)
     it = chain([srcflds], it) # push back header to ensure we iterate only once
 
     # normalise aggregators
     for outfld in aggregation:
         agg = aggregation[outfld]
-        if callable(agg):
+        if isinstance(agg, collections.Callable):
             aggregation[outfld] = None, agg
-        elif isinstance(agg, basestring):
+        elif isinstance(agg, str):
             aggregation[outfld] = agg, list # list is default
-        elif len(agg) == 1 and isinstance(agg[0], basestring):
+        elif len(agg) == 1 and isinstance(agg[0], str):
             aggregation[outfld] = agg[0], list # list is default 
-        elif len(agg) == 1 and callable(agg[0]):
+        elif len(agg) == 1 and isinstance(agg[0], collections.Callable):
             aggregation[outfld] = None, agg[0] # aggregate whole rows
         elif len(agg) == 2:
             pass # no need to normalise
@@ -4342,7 +4344,7 @@ def rangeaggregate(table, key, width, aggregation=None, value=None, minv=None,
     
     """
 
-    if callable(aggregation):
+    if isinstance(aggregation, collections.Callable):
         return SimpleRangeAggregateView(table, key, width, 
                                         aggregation=aggregation, 
                                         value=value, minv=minv, maxv=maxv,
@@ -4426,21 +4428,21 @@ class MultiRangeAggregateView(RowContainer):
 
     
 def itermultirangeaggregate(source, key, width, aggregation, minv, maxv):
-    aggregation = OrderedDict(aggregation.items()) # take a copy
+    aggregation = OrderedDict(list(aggregation.items())) # take a copy
     it = iter(source)
-    srcflds = it.next()
+    srcflds = next(it)
     it = chain([srcflds], it) # push back header to ensure we iterate only once
 
     # normalise aggregators
     for outfld in aggregation:
         agg = aggregation[outfld]
-        if callable(agg):
+        if isinstance(agg, collections.Callable):
             aggregation[outfld] = None, agg
-        elif isinstance(agg, basestring):
+        elif isinstance(agg, str):
             aggregation[outfld] = agg, list # list is default
-        elif len(agg) == 1 and isinstance(agg[0], basestring):
+        elif len(agg) == 1 and isinstance(agg[0], str):
             aggregation[outfld] = agg[0], list # list is default 
-        elif len(agg) == 1 and callable(agg[0]):
+        elif len(agg) == 1 and isinstance(agg[0], collections.Callable):
             aggregation[outfld] = None, agg[0] # aggregate whole rows
         elif len(agg) == 2:
             pass # no need to normalise
@@ -4553,7 +4555,7 @@ class RowMapView(RowContainer):
     
 def iterrowmap(source, rowmapper, fields, failonerror, missing):
     it = iter(source)
-    srcflds = it.next() 
+    srcflds = next(it) 
     yield tuple(fields)
     for row in hybridrows(srcflds, it, missing):
         try:
@@ -4666,7 +4668,7 @@ class RowMapManyView(RowContainer):
     
 def iterrowmapmany(source, rowgenerator, fields, failonerror, missing):
     it = iter(source)
-    srcflds = it.next() 
+    srcflds = next(it) 
     yield tuple(fields)
     for row in hybridrows(srcflds, it, missing):
         try:
@@ -4740,7 +4742,7 @@ class SetHeaderView(RowContainer):
 
 def itersetheader(source, fields):
     it = iter(source)
-    it.next() # discard source fields
+    next(it) # discard source fields
     yield tuple(fields)
     for row in it:
         yield tuple(row)
@@ -4794,7 +4796,7 @@ class ExtendHeaderView(RowContainer):
 
 def iterextendheader(source, fields):
     it = iter(source)
-    srcflds = it.next() 
+    srcflds = next(it) 
     outflds = list(srcflds)
     outflds.extend(fields)
     yield tuple(outflds)
@@ -4967,7 +4969,7 @@ class SkipCommentsView(RowContainer):
 
 
 def iterskipcomments(source, prefix):
-    return (row for row in source if len(row) > 0 and not(isinstance(row[0], basestring) and row[0].startswith(prefix)))
+    return (row for row in source if len(row) > 0 and not(isinstance(row[0], str) and row[0].startswith(prefix)))
         
     
 def unpack(table, field, newfields=None, maxunpack=None, include_original=False):
@@ -5031,7 +5033,7 @@ class UnpackView(RowContainer):
 def iterunpack(source, field, newfields, maxv, include_original):
     it = iter(source)
 
-    flds = it.next()
+    flds = next(it)
     if field in flds:
         field_index = flds.index(field)
     elif isinstance(field, int) and field < len(flds):
@@ -5417,8 +5419,8 @@ def iterjoin(left, right, key, leftouter=False, rightouter=False, missing=None):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     
     # determine indices of the key fields in left and right tables
     lkind = asindices(lflds, key)
@@ -5476,8 +5478,8 @@ def iterjoin(left, right, key, leftouter=False, rightouter=False, missing=None):
     try:
 
         # pick off initial row groups
-        lkval, lrowgrp = lgit.next() 
-        rkval, rrowgrp = rgit.next()
+        lkval, lrowgrp = next(lgit) 
+        rkval, rrowgrp = next(rgit)
     
         while True:
             if lkval < rkval:
@@ -5485,19 +5487,19 @@ def iterjoin(left, right, key, leftouter=False, rightouter=False, missing=None):
                     for row in joinrows(lrowgrp, None):
                         yield tuple(row)
                 # advance left
-                lkval, lrowgrp = lgit.next()
+                lkval, lrowgrp = next(lgit)
             elif lkval > rkval:
                 if rightouter:
                     for row in joinrows(None, rrowgrp):
                         yield tuple(row)
                 # advance right
-                rkval, rrowgrp = rgit.next()
+                rkval, rrowgrp = next(rgit)
             else:
                 for row in joinrows(lrowgrp, rrowgrp):
                     yield tuple(row)
                 # advance both
-                lkval, lrowgrp = lgit.next()
-                rkval, rrowgrp = rgit.next()
+                lkval, lrowgrp = next(lgit)
+                rkval, rrowgrp = next(rgit)
         
     except StopIteration:
         pass
@@ -5707,8 +5709,8 @@ def iterantijoin(left, right, key):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     yield tuple(lflds)
 
     # determine indices of the key fields in left and right tables
@@ -5728,22 +5730,22 @@ def iterantijoin(left, right, key):
     try:
 
         # pick off initial row groups
-        lkval, lrowgrp = lgit.next() 
-        rkval, _ = rgit.next()
+        lkval, lrowgrp = next(lgit) 
+        rkval, _ = next(rgit)
 
         while True:
             if lkval < rkval:
                 for row in lrowgrp:
                     yield tuple(row)
                 # advance left
-                lkval, lrowgrp = lgit.next()
+                lkval, lrowgrp = next(lgit)
             elif lkval > rkval:
                 # advance right
-                rkval, _ = rgit.next()
+                rkval, _ = next(rgit)
             else:
                 # advance both
-                lkval, lrowgrp = lgit.next()
-                rkval, _ = rgit.next()
+                lkval, lrowgrp = next(lgit)
+                rkval, _ = next(rgit)
         
     except StopIteration:
         pass
@@ -5857,7 +5859,7 @@ def rangefacet(table, field, width, minv=None, maxv=None,
         maxv = max(itervalues(table, field))
         
     fct = OrderedDict()
-    for binminv in xrange(minv, maxv, width):
+    for binminv in range(minv, maxv, width):
         binmaxv = binminv + width
         if binmaxv >= maxv: # final bin
             binmaxv = maxv
@@ -5994,21 +5996,21 @@ class IntersectionView(RowContainer):
 def iterintersection(a, b):
     ita = iter(a) 
     itb = iter(b)
-    aflds = ita.next()
-    itb.next() # ignore b fields
+    aflds = next(ita)
+    next(itb) # ignore b fields
     yield tuple(aflds)
     try:
-        a = tuple(ita.next())
-        b = tuple(itb.next())
+        a = tuple(next(ita))
+        b = tuple(next(itb))
         while True:
             if a < b:
-                a = tuple(ita.next())
+                a = tuple(next(ita))
             elif a == b:
                 yield a
-                a = tuple(ita.next())
-                b = tuple(itb.next())
+                a = tuple(next(ita))
+                b = tuple(next(itb))
             else:
-                b = tuple(itb.next())
+                b = tuple(next(itb))
     except StopIteration:
         pass
     
@@ -6116,7 +6118,7 @@ def iterpivot(source, f1, f2, f3, aggfun, missing):
     
     # second pass - generate output
     it = iter(source)
-    srcflds = it.next()
+    srcflds = next(it)
     f1i = srcflds.index(f1)
     f2i = srcflds.index(f2)
     f3i = srcflds.index(f3)
@@ -6185,8 +6187,8 @@ def iterhashjoin(left, right, key):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     
     # determine indices of the key fields in left and right tables
     lkind = asindices(lflds, key)
@@ -6299,8 +6301,8 @@ def iterhashleftjoin(left, right, key, missing):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     
     # determine indices of the key fields in left and right tables
     lkind = asindices(lflds, key)
@@ -6418,8 +6420,8 @@ def iterhashrightjoin(left, right, key, missing):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     
     # determine indices of the key fields in left and right tables
     lkind = asindices(lflds, key)
@@ -6522,8 +6524,8 @@ def iterhashantijoin(left, right, key):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     yield tuple(lflds)
 
     # determine indices of the key fields in left and right tables
@@ -6610,10 +6612,10 @@ class HashComplementView(RowContainer):
 
 def iterhashcomplement(a, b):
     ita = iter(a) 
-    aflds = ita.next()
+    aflds = next(ita)
     yield tuple(aflds)
     itb = iter(b)
-    itb.next() # discard b fields, assume they are the same
+    next(itb) # discard b fields, assume they are the same
 
     # n.b., need to account for possibility of duplicate rows
     bcnt = Counter(tuple(row) for row in itb)
@@ -6659,10 +6661,10 @@ class HashIntersectionView(RowContainer):
 
 def iterhashintersection(a, b):
     ita = iter(a) 
-    aflds = ita.next()
+    aflds = next(ita)
     yield tuple(aflds)
     itb = iter(b)
-    itb.next() # discard b fields, assume they are the same
+    next(itb) # discard b fields, assume they are the same
 
     # n.b., need to account for possibility of duplicate rows
     bcnt = Counter(tuple(row) for row in itb)
@@ -6931,7 +6933,7 @@ def itermergesort(sources, key, header, missing, reverse):
     # borrow this from itercat - TODO remove code smells
     
     its = [iter(t) for t in sources]
-    source_flds_lists = [it.next() for it in its]
+    source_flds_lists = [next(it) for it in its]
 
     if header is None:
         # determine output fields by gathering all fields found in the sources
@@ -7095,10 +7097,10 @@ class AnnexView(RowContainer):
 
 def iterannex(tables, missing):
     iters = [iter(t) for t in tables]
-    headers = [it.next() for it in iters]
+    headers = [next(it) for it in iters]
     outfields = tuple(chain(*headers))  
     yield outfields
-    for rows in izip_longest(*iters):
+    for rows in zip_longest(*iters):
         outrow = list()
         for i, row in enumerate(rows):
             lh = len(headers[i])
@@ -7178,7 +7180,7 @@ def iterunpackdict(table, field, keys, includeoriginal, samplesize, missing):
 
     # set up
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     fidx = fields.index(field)
     outfields = list(fields)
     if not includeoriginal:
@@ -7327,11 +7329,11 @@ class AddRowNumbersView(RowContainer):
 
 def iteraddrownumbers(table, start, step):
     it = iter(table)
-    flds = it.next()
+    flds = next(it)
     outflds = ['row']
     outflds.extend(flds)
     yield tuple(outflds)
-    for row, n in izip(it, count(start, step)):
+    for row, n in zip(it, count(start, step)):
         outrow = [n]
         outrow.extend(row)
         yield tuple(outrow)
@@ -7414,13 +7416,13 @@ class SearchView(RowContainer):
 def itersearch(table, pattern, field, flags):
     prog = re.compile(pattern, flags)
     it = iter(table)
-    fields = [str(f) for f in it.next()]
+    fields = [str(f) for f in next(it)]
     yield tuple(fields)
     
     if field is None:
         # search whole row
         test = lambda row: any(prog.search(str(v)) for v in row)
-    elif isinstance(field, basestring):
+    elif isinstance(field, str):
         # search single field
         index = fields.index(field)
         test = lambda row: prog.search(str(row[index]))
@@ -7483,7 +7485,7 @@ class AddColumnView(RowContainer):
     
 def iteraddcolumn(table, field, col, index, missing):
     it = iter(table)
-    fields = [str(f) for f in it.next()]
+    fields = [str(f) for f in next(it)]
     
     # determine position of new column
     if index is None:
@@ -7495,7 +7497,7 @@ def iteraddcolumn(table, field, col, index, missing):
     yield tuple(outflds)
     
     # construct output data
-    for row, val in izip_longest(it, col, fillvalue=missing):
+    for row, val in zip_longest(it, col, fillvalue=missing):
         # run out of rows?
         if row == missing:
             row = [missing] * len(fields)
@@ -7621,8 +7623,8 @@ def iterlookupjoin(left, right, key, missing=None):
     lit = iter(left)
     rit = iter(right)
 
-    lflds = lit.next()
-    rflds = rit.next()
+    lflds = next(lit)
+    rflds = next(rit)
     
     # determine indices of the key fields in left and right tables
     lkind = asindices(lflds, key)
@@ -7652,7 +7654,7 @@ def iterlookupjoin(left, right, key, missing=None):
                 outrow.extend([missing] * len(rvind))
                 yield tuple(outrow)
         else:
-            rrow = iter(rrowgrp).next() # pick first arbitrarily
+            rrow = next(iter(rrowgrp)) # pick first arbitrarily
             for lrow in lrowgrp:
                 # start with the left row
                 outrow = list(lrow)
@@ -7669,24 +7671,24 @@ def iterlookupjoin(left, right, key, missing=None):
     try:
 
         # pick off initial row groups
-        lkval, lrowgrp = lgit.next() 
-        rkval, rrowgrp = rgit.next()
+        lkval, lrowgrp = next(lgit) 
+        rkval, rrowgrp = next(rgit)
     
         while True:
             if lkval < rkval:
                 for row in joinrows(lrowgrp, None):
                     yield tuple(row)
                 # advance left
-                lkval, lrowgrp = lgit.next()
+                lkval, lrowgrp = next(lgit)
             elif lkval > rkval:
                 # advance right
-                rkval, rrowgrp = rgit.next()
+                rkval, rrowgrp = next(rgit)
             else:
                 for row in joinrows(lrowgrp, rrowgrp):
                     yield tuple(row)
                 # advance both
-                lkval, lrowgrp = lgit.next()
-                rkval, rrowgrp = rgit.next()
+                lkval, lrowgrp = next(lgit)
+                rkval, rrowgrp = next(rgit)
         
     except StopIteration:
         pass
@@ -7780,7 +7782,7 @@ class HashLookupJoinView(RowContainer):
 
 def iterhashlookupjoin(left, right, key, missing):
     lit = iter(left)
-    lflds = lit.next()
+    lflds = next(lit)
 
     rflds, rit = iterpeek(right) # need the whole lot to pass to lookup
     from petl.util import lookupone
@@ -7944,12 +7946,12 @@ class FillDownView(RowContainer):
     
 def iterfilldown(table, fillfields, missing):
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     yield tuple(fields)
     if not fillfields: # fill down all fields
         fillfields = fields
     fillindices = asindices(fields, fillfields)
-    fill = list(it.next()) # fill values
+    fill = list(next(it)) # fill values
     yield tuple(fill)
     for row in it:
         outrow = list(row)
@@ -8027,7 +8029,7 @@ class FillRightView(RowContainer):
     
 def iterfillright(table, missing):
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     yield tuple(fields)
     for row in it:
         outrow = list(row)
@@ -8103,7 +8105,7 @@ class FillLeftView(RowContainer):
     
 def iterfillleft(table, missing):
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     yield tuple(fields)
     for row in it:
         outrow = list(reversed(row))
@@ -8157,7 +8159,7 @@ def multirangeaggregate(table, keys, widths, aggregation, value=None,
     
     """
     
-    assert callable(aggregation), 'aggregation argument must be callable'
+    assert isinstance(aggregation, collections.Callable), 'aggregation argument must be callable'
     return SimpleMultiRangeAggregateView(table, keys, widths, aggregation, 
                                          value=value,
                                          mins=mins,
@@ -8216,13 +8218,13 @@ def _recursive_bin(outerbin, level, bindef, fields, keys, widths, getval, mins, 
         tbl = chain([fields], outerbin) # reconstitute table with header
         tbl_sorted = sort(tbl, key) # sort at this level
         it = iter(tbl_sorted) # get an iterator
-        it.next() # throw away header
+        next(it) # throw away header
 
         if minv is not None and maxv is not None:
             # use a different algorithm if minv and maxv are specified - fixed bins
             numbins = int(ceil((maxv - minv) / width))
             keyv = None
-            for n in xrange(0, numbins):
+            for n in range(0, numbins):
                 binminv = minv + n*width
                 binmaxv = binminv + width
                 if binmaxv >= maxv: # final bin
@@ -8232,15 +8234,15 @@ def _recursive_bin(outerbin, level, bindef, fields, keys, widths, getval, mins, 
                 binnedrows = []
                 try:
                     while keyv < binminv: # advance until we're within the bin's range
-                        row = it.next()
+                        row = next(it)
                         keyv = getkey(row)
                     while binminv <= keyv < binmaxv: # within the bin
                         binnedrows.append(row)
-                        row = it.next()
+                        row = next(it)
                         keyv = getkey(row)
                     while keyv == binmaxv == maxv: # possible floating point precision bug here?
                         binnedrows.append(row) # last bin is open if maxv is specified
-                        row = it.next()
+                        row = next(it)
                         keyv = getkey(row)
                 except StopIteration:
                     pass
@@ -8254,7 +8256,7 @@ def _recursive_bin(outerbin, level, bindef, fields, keys, widths, getval, mins, 
             
             # initialise minimum value
             try:
-                row = it.next() # what happens if this raises StopIteration?
+                row = next(it) # what happens if this raises StopIteration?
             except StopIteration:
                 pass
             else:
@@ -8274,15 +8276,15 @@ def _recursive_bin(outerbin, level, bindef, fields, keys, widths, getval, mins, 
                         thisbindef.append((binminv, binmaxv))
                         binnedrows = []
                         while keyv < binminv: # advance until we're within the bin's range
-                            row = it.next()
+                            row = next(it)
                             keyv = getkey(row)
                         while binminv <= keyv < binmaxv: # within the bin
                             binnedrows.append(row)
-                            row = it.next()
+                            row = next(it)
                             keyv = getkey(row)
                         while maxv is not None and keyv == binmaxv == maxv: # possible floating point precision bug here?
                             binnedrows.append(row) # last bin is open if maxv is specified
-                            row = it.next()
+                            row = next(it)
                             keyv = getkey(row)
                             
                         for r in _recursive_bin(binnedrows, level+1, thisbindef, fields, keys, widths, getval, mins, maxs):
@@ -8307,7 +8309,7 @@ def itersimplemultirangeaggregate(table, keys, widths, aggregation, value,
     # key fields
     
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     
     # wrap rows 
     it = hybridrows(fields, it)
@@ -8316,7 +8318,7 @@ def itersimplemultirangeaggregate(table, keys, widths, aggregation, value,
     if value is None:
         getval = lambda v: v # identity function - i.e., whole row
     else:
-        if callable(value):
+        if isinstance(value, collections.Callable):
             getval = value
         else:
             vindices = asindices(fields, value)
@@ -8441,7 +8443,7 @@ class ConvertToIncrementingCounterView(RowContainer):
         
     def __iter__(self):
         it = iter(self.table)
-        fields = it.next()
+        fields = next(it)
         table = chain([fields], it)
         value = self.value
         vidx = fields.index(value)
@@ -8537,7 +8539,7 @@ class DistinctView(RowContainer):
         
     def __iter__(self):
         it = iter(self.table)
-        yield it.next()
+        yield next(it)
         previous = None
         for row in it:
             if row != previous:

@@ -9,6 +9,7 @@ usage.
 
 import sys
 from .util import valueset, RowContainer
+import collections
 
 
 petl = sys.modules['petl']
@@ -60,8 +61,8 @@ def wrap(f):
 
         
 # import and wrap all functions from root petl module
-for n, c in petl.__dict__.items():
-    if callable(c):
+for n, c in list(petl.__dict__.items()):
+    if isinstance(c, collections.Callable):
         setattr(thismodule, n, wrap(c))
     else:
         setattr(thismodule, n, c)
@@ -69,8 +70,8 @@ for n, c in petl.__dict__.items():
 
 # add module functions as methods on the wrapper class
 # TODO add only those methods that expect to have row container as first argument
-for n, c in thismodule.__dict__.items():
-    if callable(c):
+for n, c in list(thismodule.__dict__.items()):
+    if isinstance(c, collections.Callable):
         setattr(FluentWrapper, n, c) 
         
         

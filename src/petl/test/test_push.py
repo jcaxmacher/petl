@@ -200,7 +200,7 @@ def test_sort_buffered():
                    ('D', '10'),
                    ('F', '1'))
     actual = frompickle(f.name)
-    print list(actual)
+    print(list(actual))
     ieq(expectation, actual)
 
 
@@ -210,7 +210,7 @@ def test_duplicates():
              ('A', 1, 2),
              ('B', '2', '3.4'),
              ('D', 'xyz', 9.0),
-             ('B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('B', '2', 42),
              ('E', None),
              ('D', 4, 12.3))
@@ -225,7 +225,7 @@ def test_duplicates():
 
     expectation = (('foo', 'bar', 'baz'),
                    ('B', '2', '3.4'),
-                   ('B', u'3', u'7.8', True),
+                   ('B', '3', '7.8', True),
                    ('B', '2', 42),
                    ('D', 'xyz', 9.0),
                    ('D', 4, 12.3))
@@ -250,7 +250,7 @@ def test_duplicates():
 
     exremainder = (('foo', 'bar', 'baz'),
                    ('A', 1, 2), 
-                   ('B', u'3', u'7.8', True),
+                   ('B', '3', '7.8', True),
                    ('D', 4, 12.3),
                    ('D', 'xyz', 9.0),
                    ('E', None))
@@ -263,7 +263,7 @@ def test_unique():
              ('A', 1, 2),
              ('B', '2', '3.4'),
              ('D', 'xyz', 9.0),
-             ('B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('B', '2', 42),
              ('E', None),
              ('D', 4, 12.3))
@@ -283,7 +283,7 @@ def test_unique():
 
     exremainder = (('foo', 'bar', 'baz'),
                    ('B', '2', '3.4'),
-                   ('B', u'3', u'7.8', True),
+                   ('B', '3', '7.8', True),
                    ('B', '2', 42),
                    ('D', 'xyz', 9.0),
                    ('D', 4, 12.3))
@@ -296,7 +296,7 @@ def test_operator_overload():
              ('A', 1, 2),
              ('B', '2', '3.4'),
              ('D', 'xyz', 9.0),
-             ('B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('B', '2', 42),
              ('E', None),
              ('D', 4, 12.3))
@@ -308,7 +308,7 @@ def test_operator_overload():
 
     expectation = (('foo', 'bar', 'baz'),
                    ('B', '2', '3.4'),
-                   ('B', u'3', u'7.8', True),
+                   ('B', '3', '7.8', True),
                    ('B', '2', 42),
                    ('D', 'xyz', 9.0),
                    ('D', 4, 12.3))

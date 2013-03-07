@@ -445,7 +445,7 @@ def test_rowlengths():
     table = (('foo', 'bar', 'baz'),
              ('A', 1, 2),
              ('B', '2', '3.4'),
-             (u'B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('D', 'xyz', 9.0),
              ('E', None),
              ('F', 9))
@@ -459,7 +459,7 @@ def test_stats():
     table = (('foo', 'bar', 'baz'),
              ('A', 1, 2),
              ('B', '2', '3.4'),
-             (u'B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('D', 'xyz', 9.0),
              ('E', None))
 
@@ -476,9 +476,9 @@ def test_typecounts():
 
     table = (('foo', 'bar', 'baz'),
              ('A', 1, 2.),
-             ('B', u'2', 3.4),
-             (u'B', u'3', 7.8, True),
-             ('D', u'xyz', 9.0),
+             ('B', '2', 3.4),
+             ('B', '3', 7.8, True),
+             ('D', 'xyz', 9.0),
              ('E', 42))
 
     actual = typecounts(table, 'foo') 
@@ -498,13 +498,13 @@ def test_typeset():
 
     table = (('foo', 'bar', 'baz'),
              ('A', 1, '2'),
-             ('B', u'2', '3.4'),
-             (u'B', u'3', '7.8', True),
-             ('D', u'xyz', 9.0),
+             ('B', '2', '3.4'),
+             ('B', '3', '7.8', True),
+             ('D', 'xyz', 9.0),
              ('E', 42))
 
     actual = typeset(table, 'foo') 
-    expect = set([str, unicode])
+    expect = set([str, str])
     eq_(expect, actual)
 
 
@@ -512,8 +512,8 @@ def test_parsecounts():
 
     table = (('foo', 'bar', 'baz'),
              ('A', 'aaa', 2),
-             ('B', u'2', '3.4'),
-             (u'B', u'3', u'7.8', True),
+             ('B', '2', '3.4'),
+             ('B', '3', '7.8', True),
              ('D', '3.7', 9.0),
              ('E', 42))
 
@@ -526,7 +526,7 @@ def test_parsenumber():
     
     assert parsenumber('1') == 1
     assert parsenumber('1.0') == 1.0
-    assert parsenumber(str(sys.maxint + 1)) == sys.maxint + 1
+    assert parsenumber(str(sys.maxsize + 1)) == sys.maxsize + 1
     assert parsenumber('3+4j') == 3 + 4j
     assert parsenumber('aaa') == 'aaa'
     assert parsenumber(None) == None
@@ -536,7 +536,7 @@ def test_parsenumber_strict():
     
     assert parsenumber('1', strict=True) == 1
     assert parsenumber('1.0', strict=True) == 1.0
-    assert parsenumber(str(sys.maxint + 1), strict=True) == sys.maxint + 1
+    assert parsenumber(str(sys.maxsize + 1), strict=True) == sys.maxsize + 1
     assert parsenumber('3+4j', strict=True) == 3 + 4j
     try:
         parsenumber('aaa', strict=True)
@@ -558,8 +558,8 @@ def test_stringpatterns():
              ('Mr. Foo', '123-1254'),
              ('Mrs. Bar', '234-1123'),
              ('Mr. Spo', '123-1254'),
-             (u'Mr. Baz', u'321 1434'),
-             (u'Mrs. Baz', u'321 1434'),
+             ('Mr. Baz', '321 1434'),
+             ('Mrs. Baz', '321 1434'),
              ('Mr. Quux', '123-1254-XX'))
     
     actual = stringpatterns(table, 'foo')
@@ -698,13 +698,13 @@ def test_rowgroupby():
 
     g = rowgroupby(table, 'foo')
 
-    key, vals = g.next()
+    key, vals = next(g)
     vals = list(vals)
     eq_('a', key)
     eq_(1, len(vals))
     eq_(('a', 1, True), vals[0])
 
-    key, vals = g.next()
+    key, vals = next(g)
     vals = list(vals)
     eq_('b', key)
     eq_(2, len(vals))
@@ -715,13 +715,13 @@ def test_rowgroupby():
     
     g = rowgroupby(table, 'foo', 'bar')
     
-    key, vals = g.next()
+    key, vals = next(g)
     vals = list(vals)
     eq_('a', key)
     eq_(1, len(vals))
     eq_(1, vals[0])
 
-    key, vals = g.next()
+    key, vals = next(g)
     vals = list(vals)
     eq_('b', key)
     eq_(2, len(vals))
@@ -732,13 +732,13 @@ def test_rowgroupby():
     
     g = rowgroupby(table, lambda r: r['foo'], lambda r: r['baz'])
     
-    key, vals = g.next()
+    key, vals = next(g)
     vals = list(vals)
     eq_('a', key)
     eq_(1, len(vals))
     eq_(True, vals[0])
 
-    key, vals = g.next()
+    key, vals = next(g)
     vals = list(vals)
     eq_('b', key)
     eq_(2, len(vals))

@@ -7,7 +7,7 @@ Extract and load data to/from files, databases, etc.
 import csv
 import os
 import zlib
-import cPickle as pickle
+import pickle as pickle
 import sqlite3
 from xml.etree import ElementTree
 from operator import attrgetter
@@ -17,14 +17,15 @@ import gzip
 import sys
 import bz2
 import zipfile
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from contextlib import contextmanager
-import cStringIO
+import io
 import logging
 
 
 from .util import data, header, fieldnames, asdict, records, RowContainer
 from petl.util import iterpeek
+import collections
 
 
 logger = logging.getLogger(__name__)
@@ -53,9 +54,9 @@ def crc32sum(filename):
             if not data:
                 break
             if checksum is None:
-                checksum = zlib.crc32(data) & 0xffffffffL # deal with signed integer
+                checksum = zlib.crc32(data) & 0xffffffff # deal with signed integer
             else:
-                checksum = zlib.crc32(data, checksum) & 0xffffffffL # deal with signed integer
+                checksum = zlib.crc32(data, checksum) & 0xffffffff # deal with signed integer
     return checksum
 
 
@@ -73,9 +74,9 @@ def adler32sum(filename):
             if not data:
                 break
             if checksum is None:
-                checksum = zlib.adler32(data) & 0xffffffffL # deal with signed integer
+                checksum = zlib.adler32(data) & 0xffffffff # deal with signed integer
             else:
-                checksum = zlib.adler32(data, checksum) & 0xffffffffL # deal with signed integer
+                checksum = zlib.adler32(data, checksum) & 0xffffffff # deal with signed integer
     return checksum
 
 
@@ -199,7 +200,7 @@ class URLSource(object):
         
     @contextmanager
     def open_(self, *args):
-        f = urllib2.urlopen(*self.args, **self.kwargs)
+        f = urllib.request.urlopen(*self.args, **self.kwargs)
         try:
             yield f
         finally:
@@ -220,7 +221,7 @@ class StringSource(object):
         try:
             if len(args) == 0 or args[0].startswith('r'): # read
                 if self.s is not None:
-                    self.buffer = cStringIO.StringIO(self.s)
+                    self.buffer = io.StringIO(self.s)
                 else:
                     raise Exception('no string data supplied')
             elif args[0].startswith('w'): # write
@@ -228,11 +229,11 @@ class StringSource(object):
                 if self.buffer is not None:
                     self.buffer.close()
                 # new buffer
-                self.buffer = cStringIO.StringIO()
+                self.buffer = io.StringIO()
             elif args[0].startswith('a'): # append
                 # new buffer only if none already
                 if self.buffer is None:
-                    self.buffer = cStringIO.StringIO()
+                    self.buffer = io.StringIO()
             yield self.buffer
         except:
             raise
@@ -247,7 +248,7 @@ class StringSource(object):
 def _read_source_from_arg(source):
     if source is None:
         return StdinSource()
-    elif isinstance(source, basestring):
+    elif isinstance(source, str):
         if any(map(source.startswith, ['http://', 'https://', 'ftp://'])):
             return URLSource(source)
         elif source.endswith('.gz'):
@@ -263,7 +264,7 @@ def _read_source_from_arg(source):
 def _write_source_from_arg(source):
     if source is None:
         return StdoutSource()
-    elif isinstance(source, basestring):
+    elif isinstance(source, str):
         if source.endswith('.gz'):
             return GzipSource(source)
         elif source.endswith('.bz2'):
@@ -461,7 +462,7 @@ class Sqlite3View(RowContainer):
         self.args = args
         self.kwargs = kwargs
         # setup the connection
-        if isinstance(self.source, basestring):
+        if isinstance(self.source, str):
             self.connection = sqlite3.connect(self.source)
             self.connection.row_factory = sqlite3.Row
         elif isinstance(self.source, sqlite3.Connection):
@@ -597,7 +598,7 @@ class DbView(RowContainer):
             debug('assuming %r is an instance of sqlalchemy.engine.base.Connection', self.dbo)
             _iter = _iter_sqlalchemy_connection
             
-        elif callable(self.dbo):
+        elif isinstance(self.dbo, collections.Callable):
             debug('assuming %r is a function returning a cursor', self.dbo)
             _iter = _iter_dbapi_mkcurs
             
@@ -643,7 +644,7 @@ def _iter_sqlalchemy_engine(engine, query, *args, **kwargs):
 def _iter_sqlalchemy_connection(connection, query, *args, **kwargs):
     debug('connection: %r', connection)
     results = connection.execute(query, *args, **kwargs)
-    fields = results.keys()
+    fields = list(results.keys())
     yield tuple(fields)
     for row in results:
         yield row
@@ -651,7 +652,7 @@ def _iter_sqlalchemy_connection(connection, query, *args, **kwargs):
 
 def _iter_sqlalchemy_session(session, query, *args, **kwargs):
     results = session.execute(query, *args, **kwargs)
-    fields = results.keys()
+    fields = list(results.keys())
     yield tuple(fields)
     for row in results:
         yield row
@@ -852,7 +853,7 @@ class XmlView(RowContainer):
     def __init__(self, source, *args, **kwargs):
         self.source = source
         self.args = args
-        if len(args) == 2 and isinstance(args[1], basestring):
+        if len(args) == 2 and isinstance(args[1], str):
             self.rmatch = args[0]
             self.vmatch = args[1]
             self.vdict = None
@@ -896,7 +897,7 @@ class XmlView(RowContainer):
             vgetters = dict()
             for f in fields:
                 vmatch = self.vdict[f]
-                if isinstance(vmatch, basestring):
+                if isinstance(vmatch, str):
                     # match element path
                     vmatches[f] = vmatch
                     vgetters[f] = lambda v: tuple(e.text for e in v) if len(v) > 1 else v[0].text if len(v) == 1 else self.missing
@@ -976,7 +977,7 @@ class JsonView(RowContainer):
                 header = list()
                 for o in result:
                     if hasattr(o, 'keys'):
-                        header.extend(k for k in o.keys() if k not in header)
+                        header.extend(k for k in list(o.keys()) if k not in header)
             else:
                 header = self.header
             yield tuple(header)
@@ -1032,7 +1033,7 @@ class DictsView(RowContainer):
             header = list()
             for o in result:
                 if hasattr(o, 'keys'):
-                    header.extend(k for k in o.keys() if k not in header)
+                    header.extend(k for k in list(o.keys()) if k not in header)
         else:
             header = self.header
         yield tuple(header)
@@ -1319,7 +1320,7 @@ def tosqlite3(table, filename_or_connection, tablename, create=True, commit=True
 def _tosqlite3(table, filename_or_connection, tablename, create=False, commit=True,
                truncate=False):
     
-    if isinstance(filename_or_connection, basestring):
+    if isinstance(filename_or_connection, str):
         conn = sqlite3.connect(filename_or_connection)
     elif isinstance(filename_or_connection, sqlite3.Connection):
         conn = filename_or_connection
@@ -1328,8 +1329,8 @@ def _tosqlite3(table, filename_or_connection, tablename, create=False, commit=Tr
     
     tablename = _quote(tablename)
     it = iter(table)
-    fields = it.next()
-    fieldnames = map(str, fields)
+    fields = next(it)
+    fieldnames = list(map(str, fields))
     colnames = [_quote(n) for n in fieldnames]
 
     cursor = conn.cursor()
@@ -1466,13 +1467,13 @@ def todb(table, dbo, tablename, commit=True):
     
     
 def _hasmethod(o, n):
-    return hasattr(o, n) and callable(getattr(o, n))
+    return hasattr(o, n) and isinstance(getattr(o, n), collections.Callable)
     
 def _hasmethods(o, *l):
     return all(_hasmethod(o, n) for n in l)
 
 def _hasprop(o, n):
-    return hasattr(o, n) and not callable(getattr(o, n))
+    return hasattr(o, n) and not isinstance(getattr(o, n), collections.Callable)
 
 
 def _todb(table, dbo, tablename, commit=True, truncate=False):
@@ -1518,8 +1519,8 @@ def _todb_dbapi_connection(table, connection, tablename, commit=True, truncate=F
     
     # sanitise field names
     it = iter(table)
-    fields = it.next()
-    fieldnames = map(str, fields)
+    fields = next(it)
+    fieldnames = list(map(str, fields))
     colnames = [_quote(n) for n in fieldnames]
     debug('column names: %r', colnames)
 
@@ -1558,8 +1559,8 @@ def _todb_dbapi_cursor(table, cursor, tablename, commit=True, truncate=False):
     
     # sanitise field names
     it = iter(table)
-    fields = it.next()
-    fieldnames = map(str, fields)
+    fields = next(it)
+    fieldnames = list(map(str, fields))
     colnames = [_quote(n) for n in fieldnames]
     debug('column names: %r', colnames)
 
@@ -1606,8 +1607,8 @@ def _todb_sqlalchemy_connection(table, connection, tablename, commit=True, trunc
     
     # sanitise field names
     it = iter(table)
-    fields = it.next()
-    fieldnames = map(str, fields)
+    fields = next(it)
+    fieldnames = list(map(str, fields))
     colnames = [_quote(n) for n in fieldnames]
     debug('column names: %r', colnames)
     
@@ -1804,7 +1805,7 @@ def totext(table, source=None, template=None, prologue=None, epilogue=None):
         if prologue is not None:
             f.write(prologue)
         it = iter(table)
-        flds = it.next()
+        flds = next(it)
         for row in it:
             rec = asdict(flds, row)
             s = template.format(**rec)
@@ -1826,7 +1827,7 @@ def appendtext(table, source=None, template=None, prologue=None, epilogue=None):
         if prologue is not None:
             f.write(prologue)
         it = iter(table)
-        flds = it.next()
+        flds = next(it)
         for row in it:
             rec = asdict(flds, row)
             s = template.format(**rec)

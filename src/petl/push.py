@@ -9,10 +9,11 @@ from tempfile import NamedTemporaryFile
 from operator import itemgetter
 from itertools import islice
 from collections import defaultdict
-import cPickle as pickle
+import pickle as pickle
 
 from .util import asindices, HybridRow, shortlistmergesorted
 import petl.transform
+import collections
 
 
 class PipelineComponent(object):
@@ -47,7 +48,7 @@ class PipelineComponent(object):
             
     def push(self, source, limit=None):
         it = iter(source)
-        fields = it.next()
+        fields = next(it)
         c = self.connect(fields)
         for row in islice(it, limit):
             c.accept(tuple(row))
@@ -221,7 +222,7 @@ class PartitionConnection(PipelineConnection):
 
     def __init__(self, default_connections, keyed_connections, fields, discriminator):
         super(PartitionConnection, self).__init__(default_connections, keyed_connections, fields)
-        if callable(discriminator):
+        if isinstance(discriminator, collections.Callable):
             self.discriminator = discriminator
         else: # assume field or fields
             self.discriminator = itemgetter(*asindices(fields, discriminator))
@@ -476,8 +477,8 @@ class DiffComponent(PipelineComponent):
     def push(self, ta, tb, limit=None):
         ita = iter(ta) 
         itb = iter(tb)
-        aflds = [str(f) for f in ita.next()]
-        itb.next() # ignore b fields
+        aflds = [str(f) for f in next(ita)]
+        next(itb) # ignore b fields
 
         default_connections, keyed_connections = self._connect_receivers(aflds)
         def _broadcast(*args):
@@ -491,14 +492,14 @@ class DiffComponent(PipelineComponent):
                         c.accept(row)
         
         try:
-            a = tuple(ita.next())
+            a = tuple(next(ita))
         except StopIteration:
             # a is empty, everything in b is added
             for b in itb:
                 _broadcast('+', b)
         else:
             try:
-                b = tuple(itb.next())
+                b = tuple(next(itb))
             except StopIteration:
                 # b is empty, everything in a is subtracted
                 _broadcast('-', a)
@@ -510,25 +511,25 @@ class DiffComponent(PipelineComponent):
                         _broadcast('-', a)
                         # advance a
                         try:
-                            a = tuple(ita.next())
+                            a = tuple(next(ita))
                         except StopIteration:
                             a = None
                     elif a == b:
                         _broadcast(a) # default channel
                         # advance both
                         try:
-                            a = tuple(ita.next())
+                            a = tuple(next(ita))
                         except StopIteration:
                             a = None
                         try:
-                            b = tuple(itb.next())
+                            b = tuple(next(itb))
                         except StopIteration:
                             b = None
                     else:
                         _broadcast('+', b)
                         # advance b
                         try:
-                            b = tuple(itb.next())
+                            b = tuple(next(itb))
                         except StopIteration:
                             b = None
 

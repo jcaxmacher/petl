@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import petl
-print petl.VERSION
+print(petl.VERSION)
 from petl.testutils import ieq
 
 import sys
@@ -25,7 +25,7 @@ import MySQLdb
 connection = MySQLdb.connect(user=user, passwd=passwd, db='petl_test')
 
 def prompt(msg):
-    i = raw_input(msg + '? ([y]/n)\n')
+    i = input(msg + '? ([y]/n)\n')
     if i not in ('', 'y', 'Y'):
         sys.exit(0)
      
@@ -41,29 +41,29 @@ connection.commit()
 prompt('exercise the petl functions using a connection')
 from petl import look, fromdb, todb, appenddb
 t1 = fromdb(connection, 'SELECT * FROM test')
-print look(t1)
+print(look(t1))
 t2 = (('foo', 'bar'), ('a', 1), ('b', 1))
 t2app = (('foo', 'bar'), ('a', 1), ('b', 1), ('a', 1), ('b', 1))
 todb(t2, connection, 'test')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 appenddb(t2, connection, 'test')
-print look(t1)
+print(look(t1))
 ieq(t2app, t1)
 todb(t2, connection, 'test')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 
 prompt('exercise the petl functions using a cursor')
 cursor = connection.cursor()
 todb(t2, cursor, 'test')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 appenddb(t2, cursor, 'test')
-print look(t1)
+print(look(t1))
 ieq(t2app, t1)
 todb(t2, cursor, 'test')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 
 from sqlalchemy import create_engine
@@ -74,17 +74,17 @@ connection = engine.connect()
 connection.execute('SET SQL_MODE=ANSI_QUOTES')
 prompt('fromdb')
 t1 = fromdb(connection, 'SELECT * FROM test')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 prompt('appenddb')
 appenddb(t2, connection, 'test')
 prompt('look')
-print look(t1)
+print(look(t1))
 ieq(t2app, t1)
 prompt('todb')
 todb(t2, connection, 'test')
 prompt('look')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 
 prompt('exercise using sqlalchemy engine')
@@ -95,19 +95,19 @@ prompt('fromdb')
 # compatibility
 engine.execute('SET SQL_MODE=ANSI_QUOTES')
 t1 = fromdb(engine, 'SELECT * FROM "test"')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 prompt('appenddb')
 appenddb(t2, engine, 'test')
 prompt('look')
 engine.execute('SET SQL_MODE=ANSI_QUOTES')
-print look(t1)
+print(look(t1))
 ieq(t2app, t1)
 prompt('todb')
 todb(t2, engine, 'test')
 prompt('look')
 engine.execute('SET SQL_MODE=ANSI_QUOTES')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 
 
@@ -117,16 +117,16 @@ from sqlalchemy.orm import sessionmaker
 Session = sessionmaker(bind=engine)
 session = Session()
 t1 = fromdb(session, 'SELECT * FROM test')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 prompt('appenddb')
 appenddb(t2, session, 'test')
 prompt('look')
-print look(t1)
+print(look(t1))
 ieq(t2app, t1)
 prompt('todb')
 todb(t2, session, 'test')
 prompt('look')
-print look(t1)
+print(look(t1))
 ieq(t2, t1)
 

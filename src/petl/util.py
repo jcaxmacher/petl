@@ -13,7 +13,7 @@ import random
 import time
 import datetime
 from functools import partial
-from itertools import izip_longest
+from itertools import zip_longest
 import heapq
 import sys
 import operator
@@ -21,6 +21,7 @@ from math import ceil
 
 
 from .base import IterContainer
+import collections
 
 
 # Python 2.6 compatibility
@@ -31,13 +32,13 @@ except ImportError:
 
 
 SINGLETONS = set([None, False, True])
-SAFE_TYPES = set([complex, float, int, long, str, unicode])
+SAFE_TYPES = set([complex, float, int, int, str, str])
 
 
 class RowContainer(IterContainer):
     
     def __getitem__(self, item):
-        if isinstance(item, basestring):
+        if isinstance(item, str):
             return ValuesContainer(self, item)
         else:
             return super(RowContainer, self).__getitem__(item)
@@ -57,7 +58,7 @@ def header(table):
     """
     
     it = iter(table)
-    return it.next()
+    return next(it)
 
 
 def fieldnames(table):
@@ -196,7 +197,7 @@ def records(table, missing=None):
     """
     
     it = iter(table)
-    flds = it.next()
+    flds = next(it)
     for row in it:
         yield asdict(flds, row, missing)
     
@@ -358,7 +359,7 @@ class Look(object):
         vrepr = self.vrepr
         
         # fields representation
-        flds = it.next()
+        flds = next(it)
         fldsrepr = [vrepr(f) for f in flds]
         
         # rows representations
@@ -372,10 +373,10 @@ class Look(object):
         
         # pad short fields and rows
         if len(flds) < maxrowlen:
-            fldsrepr.extend([u''] * (maxrowlen - len(flds)))
+            fldsrepr.extend([''] * (maxrowlen - len(flds)))
         for valsrepr in rowsrepr:
             if len(valsrepr) < maxrowlen:
-                valsrepr.extend([u''] * (maxrowlen - len(valsrepr)))
+                valsrepr.extend([''] * (maxrowlen - len(valsrepr)))
         
         # find longest representations so we know how wide to make cells
         colwidths = [0] * maxrowlen # initialise to 0
@@ -387,38 +388,38 @@ class Look(object):
                     colwidths[i] = len(vr)
                     
         # construct a line separator
-        sep = u'+'
+        sep = '+'
         for w in colwidths:
-            sep += u'-' * (w + 2)
-            sep += u'+'
-        sep += u'\n'
+            sep += '-' * (w + 2)
+            sep += '+'
+        sep += '\n'
         
         # construct a header separator
-        hedsep = u'+'
+        hedsep = '+'
         for w in colwidths:
-            hedsep += u'=' * (w + 2)
-            hedsep += u'+'
-        hedsep += u'\n'
+            hedsep += '=' * (w + 2)
+            hedsep += '+'
+        hedsep += '\n'
         
         # construct a line for the header row
-        fldsline = u'|'
+        fldsline = '|'
         for i, w in enumerate(colwidths):
             f = fldsrepr[i]
-            fldsline += u' ' + f
-            fldsline += u' ' * (w - len(f)) # padding
-            fldsline += u' |'
-        fldsline += u'\n'
+            fldsline += ' ' + f
+            fldsline += ' ' * (w - len(f)) # padding
+            fldsline += ' |'
+        fldsline += '\n'
         
         # construct a line for each data row
         rowlines = list()
         for valsrepr in rowsrepr:
-            rowline = u'|'
+            rowline = '|'
             for i, w in enumerate(colwidths):
                 v = valsrepr[i]
-                rowline += u' ' + v
-                rowline += u' ' * (w - len(v)) # padding
-                rowline += u' |'
-            rowline += u'\n'
+                rowline += ' ' + v
+                rowline += ' ' * (w - len(v)) # padding
+                rowline += ' |'
+            rowline += '\n'
             rowlines.append(rowline)
             
         # put it all together
@@ -491,7 +492,7 @@ class See(object):
         
     def __repr__(self):    
         it = iter(self.table)
-        flds = it.next()
+        flds = next(it)
         cols = defaultdict(list)
         for row in islice(it, *self.sliceargs):
             for i, f in enumerate(flds):
@@ -499,9 +500,9 @@ class See(object):
                     cols[str(f)].append(repr(row[i]))
                 except IndexError:
                     cols[str(f)].append('')
-        output = u''
+        output = ''
         for f in flds:
-            output += u'%r: %s\n' % (f, u', '.join(cols[str(f)]))
+            output += '%r: %s\n' % (f, ', '.join(cols[str(f)]))
         return output
         
     
@@ -567,7 +568,7 @@ def itervalues(table, field, *sliceargs, **kwargs):
     else:
         missing = None
     it = iter(table)
-    srcflds = it.next()
+    srcflds = next(it)
     indices = asindices(srcflds, field)
     assert len(indices) > 0, 'no field selected'
     getvalue = itemgetter(*indices)
@@ -784,7 +785,7 @@ class MultiValueCountsView(RowContainer):
         if refresh:
             self.counters = dict()
             it = iter(self.table)
-            fields = it.next()
+            fields = next(it)
             if self.fields:
                 self.countfields = self.fields
             else:
@@ -792,7 +793,7 @@ class MultiValueCountsView(RowContainer):
             for f in self.countfields:
                 self.counters[f] = Counter()
             for row in it:
-                for f, v in izip_longest(fields, row, fillvalue=self.missing):
+                for f, v in zip_longest(fields, row, fillvalue=self.missing):
                     if f != self.missing and f in self.countfields:
                         self.counters[f][v] += 1
                 
@@ -822,11 +823,11 @@ def columns(table, missing=None):
     
     cols = dict()
     it = iter(table)
-    fields = [str(f) for f in it.next()]
+    fields = [str(f) for f in next(it)]
     for f in fields:
         cols[f] = list()
     for row in it:
-        for f, v in izip_longest(fields, row, fillvalue=missing):
+        for f, v in zip_longest(fields, row, fillvalue=missing):
             if f in cols:
                 cols[f].append(v)
     return cols
@@ -857,7 +858,7 @@ def facetcolumns(table, key, missing=None):
     
     fct = dict()
     it = iter(table)
-    fields = [str(f) for f in it.next()]
+    fields = [str(f) for f in next(it)]
     indices = asindices(fields, key)
     assert len(indices) > 0, 'no key field selected'
     getkey = itemgetter(*indices)
@@ -871,7 +872,7 @@ def facetcolumns(table, key, missing=None):
             fct[kv] = cols
         else:
             cols = fct[kv]
-        for f, v in izip_longest(fields, row, fillvalue=missing):
+        for f, v in zip_longest(fields, row, fillvalue=missing):
             if f in cols:
                 cols[f].append(v)
         
@@ -974,7 +975,7 @@ def lookup(table, keyspec, valuespec=None, dictionary=None):
         dictionary = dict()
         
     it = iter(table)
-    flds = it.next()
+    flds = next(it)
     if valuespec is None:
         valuespec = flds # default valuespec is complete row
     keyindices = asindices(flds, keyspec)
@@ -1078,7 +1079,7 @@ def lookupone(table, keyspec, valuespec=None, dictionary=None, strict=False):
         dictionary = dict()
 
     it = iter(table)
-    flds = it.next()
+    flds = next(it)
     if valuespec is None:
         valuespec = flds
     keyindices = asindices(flds, keyspec)
@@ -1150,7 +1151,7 @@ def recordlookup(table, keyspec, dictionary=None):
         dictionary = dict()
 
     it = iter(table)
-    flds = it.next()
+    flds = next(it)
     keyindices = asindices(flds, keyspec)
     assert len(keyindices) > 0, 'no keyspec selected'
     getkey = itemgetter(*keyindices)
@@ -1248,7 +1249,7 @@ def recordlookupone(table, keyspec, dictionary=None, strict=False):
         dictionary = dict()
 
     it = iter(table)
-    flds = it.next()
+    flds = next(it)
     keyindices = asindices(flds, keyspec)
     assert len(keyindices) > 0, 'no keyspec selected'
     getkey = itemgetter(*keyindices)
@@ -1274,7 +1275,7 @@ def asindices(flds, spec):
 
     names = [str(f) for f in flds]
     indices = list()
-    if isinstance(spec, basestring):
+    if isinstance(spec, str):
         spec = (spec,)
     if isinstance(spec, int):
         spec = (spec,)
@@ -1540,12 +1541,12 @@ def parsecounter(table, field, parsers={'int': int, 'float': float}):
     
     counter, errors = Counter(), Counter()
     # need to initialise
-    for n in parsers.keys():
+    for n in list(parsers.keys()):
         counter[n] = 0
         errors[n] = 0
     for v in itervalues(table, field):
-        if isinstance(v, basestring):
-            for name, parser in parsers.items():
+        if isinstance(v, str):
+            for name, parser in list(parsers.items()):
                 try:
                     parser(v)
                 except:
@@ -1880,7 +1881,7 @@ def limits(table, field):
     
     vals = itervalues(table, field)
     try:
-        minv = maxv = vals.next()
+        minv = maxv = next(vals)
     except StopIteration:
         return None, None
     else:
@@ -1983,7 +1984,7 @@ def parsenumber(v, strict=False):
     except:
         pass
     try:
-        return long(v)
+        return int(v)
     except:
         pass
     try:
@@ -2134,7 +2135,7 @@ class RandomTable(RowContainer):
         yield tuple(flds)
 
         # construct data rows
-        for _ in xrange(nr):
+        for _ in range(nr):
             # artificial delay
             if self.wait:
                 time.sleep(self.wait)
@@ -2253,11 +2254,11 @@ class DummyTable(RowContainer):
         random.seed(seed)
         
         # construct header row
-        header = tuple(str(f) for f in fields.keys())
+        header = tuple(str(f) for f in list(fields.keys()))
         yield header
 
         # construct data rows
-        for _ in xrange(nr):
+        for _ in range(nr):
             # artificial delay
             if self.wait:
                 time.sleep(self.wait)
@@ -2384,7 +2385,7 @@ def shortlistmergesorted(key=None, reverse=False, *iterables):
     for iterable in iterables:
         it = iter(iterable)
         try:
-            first = it.next()
+            first = next(it)
             iterators.append(it)
             shortlist.append(first)
         except StopIteration:
@@ -2395,7 +2396,7 @@ def shortlistmergesorted(key=None, reverse=False, *iterables):
         yield nxt
         nextidx = shortlist.index(nxt)
         try:
-            shortlist[nextidx] = iterators[nextidx].next()
+            shortlist[nextidx] = next(iterators[nextidx])
         except StopIteration:
             del shortlist[nextidx]
             del iterators[nextidx]
@@ -2488,7 +2489,7 @@ class ProgressView(RowContainer):
                 batchrate = int(self.batchsize / batchtime)
                 v = (n, elapsedtime, rate, batchtime, batchrate)
                 message = self.prefix + '%s rows in %.2fs (%s row/s); batch in %.2fs (%s row/s)' % v
-                print >>self.out, message
+                print(message, file=self.out)
                 batchstart = batchend
             yield r
         end = time.time()
@@ -2496,7 +2497,7 @@ class ProgressView(RowContainer):
         rate = int(n / elapsedtime)    
         v = (n, elapsedtime, rate)
         message = self.prefix + '%s rows in %.2fs (%s row/s)' % v
-        print >>self.out, message
+        print(message, file=self.out)
             
 
 def clock(table):
@@ -2554,7 +2555,7 @@ class ClockView(RowContainer):
         it = iter(self.wrapped)
         while True:
             before = time.clock()
-            row = it.next()
+            row = next(it)
             after = time.clock()
             self.time += (after - before)
             yield row
@@ -2598,16 +2599,16 @@ def isordered(table, key=None, reverse=False, strict=False):
         op = operator.ge
         
     it = iter(table)
-    fieldnames = [str(f) for f in it.next()]
+    fieldnames = [str(f) for f in next(it)]
     if key is None:
-        prev = it.next()
+        prev = next(it)
         for curr in it:
             if not op(curr, prev):
                 return False
             prev = curr
     else:
         getkey = itemgetter(*asindices(fieldnames, key))
-        prev = it.next()
+        prev = next(it)
         prevkey = getkey(prev)
         for curr in it:
             currkey = getkey(curr)
@@ -2653,13 +2654,13 @@ def rowgroupby(table, key, value=None):
     """
     
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     
     # wrap rows 
     it = hybridrows(fields, it)
         
     # determine key function
-    if callable(key):
+    if isinstance(key, collections.Callable):
         getkey = key
     else:
         kindices = asindices(fields, key)
@@ -2669,7 +2670,7 @@ def rowgroupby(table, key, value=None):
     if value is None:
         return groupby(it, key=getkey)
     else:
-        if callable(value):
+        if isinstance(value, collections.Callable):
             getval = value
         else:
             vindices = asindices(fields, value)
@@ -2680,7 +2681,7 @@ def rowgroupby(table, key, value=None):
 def iterpeek(it, n=1):
     it = iter(it) # make sure it's an iterator
     if n == 1:
-        peek = it.next()
+        peek = next(it)
         return peek, chain([peek], it)
     else:
         peek = list(islice(it, n))
@@ -2694,13 +2695,13 @@ def rowgroupbybin(table, key, width, value=None, minv=None, maxv=None):
     """
 
     it = iter(table)
-    fields = it.next()
+    fields = next(it)
     
     # wrap rows 
     it = hybridrows(fields, it)
 
     # determine key function
-    if callable(key):
+    if isinstance(key, collections.Callable):
         getkey = key
     else:
         kindices = asindices(fields, key)
@@ -2710,7 +2711,7 @@ def rowgroupbybin(table, key, width, value=None, minv=None, maxv=None):
     if value is None:
         getval = lambda v: v # identity function - i.e., whole row
     else:
-        if callable(value):
+        if isinstance(value, collections.Callable):
             getval = value
         else:
             vindices = asindices(fields, value)
@@ -2719,40 +2720,40 @@ def rowgroupbybin(table, key, width, value=None, minv=None, maxv=None):
     # use a different algorithm if minv and maxv are specified - fixed bins
     if minv is not None and maxv is not None:
         numbins = int(ceil((maxv - minv) / width))
-        print numbins
+        print(numbins)
         keyv = None
-        for n in xrange(0, numbins):
+        for n in range(0, numbins):
             binminv = minv + n*width
             binmaxv = binminv + width
             if binmaxv >= maxv: # final bin
                 binmaxv = maxv # truncate final bin to specified maximum
-            print binminv, binmaxv
+            print(binminv, binmaxv)
             binnedvals = []
             try:
                 while keyv < binminv: # advance until we're within the bin's range
-                    print 'advancing', keyv
-                    row = it.next()
+                    print('advancing', keyv)
+                    row = next(it)
                     keyv = getkey(row)
                 while binminv <= keyv < binmaxv: # within the bin
-                    print 'within', keyv
+                    print('within', keyv)
                     binnedvals.append(getval(row))
-                    row = it.next()
+                    row = next(it)
                     keyv = getkey(row)
                 while keyv == binmaxv == maxv: # possible floating point precision bug here?
-                    print 'within last', keyv
+                    print('within last', keyv)
                     binnedvals.append(getval(row)) # last bin is open if maxv is specified
-                    row = it.next()
+                    row = next(it)
                     keyv = getkey(row)
             except StopIteration:
                 pass
-            print binminv, binmaxv, binnedvals
+            print(binminv, binmaxv, binnedvals)
             yield (binminv, binmaxv), binnedvals
 
     else:
         
         # initialise minimum
         try:
-            row = it.next()
+            row = next(it)
         except StopIteration:
             pass
         else:
@@ -2771,15 +2772,15 @@ def rowgroupbybin(table, key, width, value=None, minv=None, maxv=None):
                         binmaxv = maxv # truncate final bin to specified maximum
                     binnedvals = []
                     while keyv < binminv: # advance until we're within the bin's range
-                        row = it.next()
+                        row = next(it)
                         keyv = getkey(row)
                     while binminv <= keyv < binmaxv: # within the bin
                         binnedvals.append(getval(row))
-                        row = it.next()
+                        row = next(it)
                         keyv = getkey(row)
                     while maxv is not None and keyv == binmaxv == maxv: # possible floating point precision bug here?
                         binnedvals.append(getval(row)) # last bin is open if maxv is specified
-                        row = it.next()
+                        row = next(it)
                         keyv = getkey(row)
                     yield (binminv, binmaxv), binnedvals
                     if maxv is not None and binmaxv == maxv: # possible floating point precision bug here?

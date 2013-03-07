@@ -59,7 +59,7 @@ def test_cut():
     table = (('foo', 'bar', 'baz'),
              ('A', 1, 2),
              ('B', '2', '3.4'),
-             (u'B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('D', 'xyz', 9.0),
              ('E', None))
 
@@ -67,7 +67,7 @@ def test_cut():
     expectation = (('foo',),
                    ('A',),
                    ('B',),
-                   (u'B',),
+                   ('B',),
                    ('D',),
                    ('E',))
     ieq(expectation, cut1)
@@ -76,7 +76,7 @@ def test_cut():
     expectation = (('foo', 'baz'),
                    ('A', 2),
                    ('B', '3.4'),
-                   (u'B', u'7.8'),
+                   ('B', '7.8'),
                    ('D', 9.0),
                    ('E', None))
     ieq(expectation, cut2)
@@ -85,7 +85,7 @@ def test_cut():
     expectation = (('foo', 'baz'),
                    ('A', 2),
                    ('B', '3.4'),
-                   (u'B', u'7.8'),
+                   ('B', '7.8'),
                    ('D', 9.0),
                    ('E', None))
     ieq(expectation, cut3)
@@ -94,7 +94,7 @@ def test_cut():
     expectation = (('bar', 'foo'),
                    (1, 'A'),
                    ('2', 'B'),
-                   (u'3', u'B'),
+                   ('3', 'B'),
                    ('xyz', 'D'),
                    (None, 'E'))
     ieq(expectation, cut4)
@@ -103,7 +103,7 @@ def test_cut():
     expectation = (('foo', 'baz'),
                    ('A', 2),
                    ('B', '3.4'),
-                   (u'B', u'7.8'),
+                   ('B', '7.8'),
                    ('D', 9.0),
                    ('E', None))
     ieq(expectation, cut5)
@@ -121,7 +121,7 @@ def test_cutout():
     table = (('foo', 'bar', 'baz'),
              ('A', 1, 2),
              ('B', '2', '3.4'),
-             (u'B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('D', 'xyz', 9.0),
              ('E', None))
 
@@ -129,7 +129,7 @@ def test_cutout():
     expectation = (('foo',),
                    ('A',),
                    ('B',),
-                   (u'B',),
+                   ('B',),
                    ('D',),
                    ('E',))
     ieq(expectation, cut1)
@@ -138,7 +138,7 @@ def test_cutout():
     expectation = (('foo', 'baz'),
                    ('A', 2),
                    ('B', '3.4'),
-                   (u'B', u'7.8'),
+                   ('B', '7.8'),
                    ('D', 9.0),
                    ('E', None))
     ieq(expectation, cut2)
@@ -147,7 +147,7 @@ def test_cutout():
     expectation = (('foo', 'baz'),
                    ('A', 2),
                    ('B', '3.4'),
-                   (u'B', u'7.8'),
+                   ('B', '7.8'),
                    ('D', 9.0),
                    ('E', None))
     ieq(expectation, cut3)
@@ -176,7 +176,7 @@ def test_cat():
     table3 = (('foo', 'bar', 'baz'),
               ('A', 1, 2),
               ('B', '2', '3.4'),
-              (u'B', u'3', u'7.8', True),
+              ('B', '3', '7.8', True),
               ('D', 'xyz', 9.0),
               ('E', None))
 
@@ -184,7 +184,7 @@ def test_cat():
     expectation = (('foo', 'bar', 'baz'),
                    ('A', 1, 2),
                    ('B', '2', '3.4'),
-                   (u'B', u'3', u'7.8'),
+                   ('B', '3', '7.8'),
                    ('D', 'xyz', 9.0),
                    ('E', None, None))
     ieq(expectation, cat3)
@@ -198,7 +198,7 @@ def test_cat():
                    (None, 'D', False),
                    ('A', 1, 2),
                    ('B', '2', '3.4'),
-                   (u'B', u'3', u'7.8'),
+                   ('B', '3', '7.8'),
                    ('D', 'xyz', 9.0),
                    ('E', None, None))
     ieq(expectation, cat4)
@@ -248,7 +248,7 @@ def test_convert():
     table1 = (('foo', 'bar', 'baz'),
               ('A', 1, 2),
               ('B', '2', '3.4'),
-              (u'B', u'3', u'7.8', True),
+              ('B', '3', '7.8', True),
               ('D', 'xyz', 9.0),
               ('E', None))
     
@@ -257,7 +257,7 @@ def test_convert():
     expect2 = (('foo', 'bar', 'baz'),
                ('a', 1, 2),
                ('b', '2', '3.4'),
-               (u'b', u'3', u'7.8', True),
+               ('b', '3', '7.8', True),
                ('d', 'xyz', 9.0),
                ('e', None))
     ieq(expect2, table2)
@@ -273,7 +273,7 @@ def test_convert():
     expect4 = (('foo', 'bar', 'baz'),
                ('A', 1, 2),
                ('BB', '2', '3.4'),
-               (u'BB', u'3', u'7.8', True),
+               ('BB', '3', '7.8', True),
                ('D', 'xyz', 9.0),
                ('E', None))
     ieq(expect4, table4)
@@ -283,7 +283,7 @@ def test_convert():
     expect5 = (('foo', 'bar', 'baz'),
                ('A', '1', '2'),
                ('B', '2', '3.4'),
-               (u'B', u'3', u'7.8', True),
+               ('B', '3', '7.8', True),
                ('D', 'xyz', '9.0'),
                ('E', 'None'))
     ieq(expect5, table5)
@@ -293,7 +293,7 @@ def test_convert():
     expect6 = (('foo', 'bar', 'baz'),
                ('Z', 1, 2),
                ('Y', '2', '3.4'),
-               (u'Y', u'3', u'7.8', True),
+               ('Y', '3', '7.8', True),
                ('D', 'xyz', 9.0),
                ('E', None))
     ieq(expect6, table6)
@@ -311,7 +311,7 @@ def test_convert_indexes():
     table1 = (('foo', 'bar', 'baz'),
               ('A', 1, 2),
               ('B', '2', '3.4'),
-              (u'B', u'3', u'7.8', True),
+              ('B', '3', '7.8', True),
               ('D', 'xyz', 9.0),
               ('E', None))
     
@@ -320,7 +320,7 @@ def test_convert_indexes():
     expect2 = (('foo', 'bar', 'baz'),
                ('a', 1, 2),
                ('b', '2', '3.4'),
-               (u'b', u'3', u'7.8', True),
+               ('b', '3', '7.8', True),
                ('d', 'xyz', 9.0),
                ('e', None))
     ieq(expect2, table2)
@@ -336,7 +336,7 @@ def test_convert_indexes():
     expect4 = (('foo', 'bar', 'baz'),
                ('A', 1, 2),
                ('BB', '2', '3.4'),
-               (u'BB', u'3', u'7.8', True),
+               ('BB', '3', '7.8', True),
                ('D', 'xyz', 9.0),
                ('E', None))
     ieq(expect4, table4)
@@ -345,11 +345,11 @@ def test_convert_indexes():
     table5a = convert(table1, (1, 2), str)
     table5b = convert(table1, (1, 'baz'), str)
     table5c = convert(table1, ('bar', 2), str)
-    table5d = convert(table1, range(1, 3), str)
+    table5d = convert(table1, list(range(1, 3)), str)
     expect5 = (('foo', 'bar', 'baz'),
                ('A', '1', '2'),
                ('B', '2', '3.4'),
-               (u'B', u'3', u'7.8', True),
+               ('B', '3', '7.8', True),
                ('D', 'xyz', '9.0'),
                ('E', 'None'))
     ieq(expect5, table5a)
@@ -362,7 +362,7 @@ def test_convert_indexes():
     expect6 = (('foo', 'bar', 'baz'),
                ('Z', 1, 2),
                ('Y', '2', '3.4'),
-               (u'Y', u'3', u'7.8', True),
+               ('Y', '3', '7.8', True),
                ('D', 'xyz', 9.0),
                ('E', None))
     ieq(expect6, table6)
@@ -373,7 +373,7 @@ def test_fieldconvert():
     table1 = (('foo', 'bar', 'baz'),
               ('A', 1, 2),
               ('B', '2', '3.4'),
-              (u'B', u'3', u'7.8', True),
+              ('B', '3', '7.8', True),
               ('D', 'xyz', 9.0),
               ('E', None))
     
@@ -407,7 +407,7 @@ def test_fieldconvert():
     expect7 = (('foo', 'bar', 'baz'),
                ('A', 1, 2),
                ('BB', '2', '3.4'),
-               (u'BB', u'3', u'7.8', True),
+               ('BB', '3', '7.8', True),
                ('D', 'xyz', 9.0),
                ('E', None))
     ieq(expect7, table7)
@@ -429,7 +429,7 @@ def test_fieldconvert():
     expect9 = (('foo', 'bar', 'baz'),
                ('A', 1, 2.0),
                ('B', '2', 3.4),
-               ('B', u'3', 7.8, True), # N.B., long rows are preserved
+               ('B', '3', 7.8, True), # N.B., long rows are preserved
                ('D', 'xyz', 9.0),
                ('E', None)) # N.B., short rows are preserved
     ieq(expect9, table9) 
@@ -532,7 +532,7 @@ def test_rowslice():
     table = (('foo', 'bar', 'baz'),
              ('A', 1, 2),
              ('B', '2', '3.4'),
-             (u'B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('D', 'xyz', 9.0),
              ('E', None))
 
@@ -1055,7 +1055,7 @@ def test_duplicates():
              ('A', 1, 2),
              ('B', '2', '3.4'),
              ('D', 'xyz', 9.0),
-             ('B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('B', '2', 42),
              ('E', None),
              ('D', 4, 12.3))
@@ -1063,7 +1063,7 @@ def test_duplicates():
     result = duplicates(table, 'foo')
     expectation = (('foo', 'bar', 'baz'),
                    ('B', '2', '3.4'),
-                   ('B', u'3', u'7.8', True),
+                   ('B', '3', '7.8', True),
                    ('B', '2', 42),
                    ('D', 'xyz', 9.0),
                    ('D', 4, 12.3))
@@ -1105,7 +1105,7 @@ def test_unique():
              ('A', 1, 2),
              ('B', '2', '3.4'),
              ('D', 'xyz', 9.0),
-             ('B', u'3', u'7.8', True),
+             ('B', '3', '7.8', True),
              ('B', '2', 42),
              ('E', None),
              ('D', 4, 12.3),
@@ -1123,7 +1123,7 @@ def test_unique():
     result = unique(table, key=('foo', 'bar'))
     expectation = (('foo', 'bar', 'baz'),
                    ('A', 1, 2),
-                   ('B', u'3', u'7.8', True),
+                   ('B', '3', '7.8', True),
                    ('D', 4, 12.3),
                    ('D', 'xyz', 9.0),
                    ('E', None),
@@ -1160,7 +1160,7 @@ def test_conflicts():
              ('A', 1, 2),
              ('B', '2', None),
              ('D', 'xyz', 9.4),
-             ('B', None, u'7.8', True),
+             ('B', None, '7.8', True),
              ('E', None),
              ('D', 'xyz', 12.3),
              ('A', 2, None))
@@ -1216,7 +1216,7 @@ def test_mergeduplicates():
              ('A', 1, 2),
              ('B', '2', None),
              ('D', 'xyz', 9.4),
-             ('B', None, u'7.8', True),
+             ('B', None, '7.8', True),
              ('E', None, 42.),
              ('D', 'xyz', 12.3),
              ('A', 2, None))
@@ -1225,7 +1225,7 @@ def test_mergeduplicates():
     result = mergeduplicates(table, 'foo', missing=None)
     expectation = (('foo', 'bar', 'baz'),
                    ('A', Conflict([1, 2]), 2),
-                   ('B', '2', u'7.8'),
+                   ('B', '2', '7.8'),
                    ('D', 'xyz', Conflict([9.4, 12.3])),
                    ('E', None, 42.))
     ieq(expectation, result)
@@ -1966,7 +1966,7 @@ def test_facet_2():
 def test_facet_empty():
     table = (('foo', 'bar'),)
     actual = facet(table, 'foo')
-    eq_(list(), actual.keys())
+    eq_(list(), list(actual.keys()))
 
 
 def test_rangefacet():
@@ -1980,7 +1980,7 @@ def test_rangefacet():
               ('c', 4),
               ('d', 3))
     rf = rangefacet(table1, 'bar', 2)
-    eq_([(1, 3), (3, 5), (5, 7), (7, 9)], rf.keys())
+    eq_([(1, 3), (3, 5), (5, 7), (7, 9)], list(rf.keys()))
     expect_13 = (('foo', 'bar'),
                  ('b', 2),
                  ('b', 1)) # N.B., it get's sorted
@@ -3679,7 +3679,7 @@ def test_unflatten_empty():
     table1 = (('lines',),)
     expect1 = (('f0', 'f1', 'f2'),)
     actual1 = unflatten(table1, 'lines', 3)
-    print list(actual1)
+    print(list(actual1))
     ieq(expect1, actual1)
 
 
